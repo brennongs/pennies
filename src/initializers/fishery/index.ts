@@ -1,12 +1,14 @@
 import { type Faker, faker } from '@faker-js/faker';
 import { Factory, GeneratorFn } from 'fishery';
 
-export abstract class Repository<T, C extends T> extends Factory<
-  T,
-  unknown,
-  C
-> {
-  constructor(generate: (faker: Faker) => GeneratorFn<T, unknown, C>) {
+export abstract class Repository<
+  Model,
+  Creator extends Model,
+  Transient,
+> extends Factory<Model, Transient, Creator> {
+  constructor(
+    generate: (faker: Faker) => GeneratorFn<Model, Transient, Creator>,
+  ) {
     super(generate(faker));
   }
 }

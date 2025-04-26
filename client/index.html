@@ -1,0 +1,181 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script>
+    const $ = document.querySelector.bind(document);
+    window.socket = new WebSocket('ws://localhost:3000');
+    window.socket.addEventListener('message', (event) => {
+      const parsed = JSON.parse(event.data)
+
+      if (parsed.event === 'user.added') {
+        const ul = $('.modal-container#lobby ul');
+        
+        while (ul.firstChild) {
+          ul.removeChild(ul.firstChild)
+        }
+
+        parsed.data.usernames.forEach((username) => {
+          const user = document.createElement('li')
+          user.textContent = username
+          $('.modal-container#lobby ul').appendChild(user)
+        })
+      }
+    })
+
+    function showModal(type) {
+      const modal = $(`#${type}.modal-container`);
+      modal.classList.add('open');
+    }
+
+    function closeModal(type) {
+      const modal = $(`#${type}.modal-container`);
+      modal.classList.remove('open');
+    }
+
+    async function createSession(event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target)
+      const data = await (await fetch('http://localhost:3000/games', {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(formData)),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })).json();
+
+      $('.modal-container#host').classList.remove('open')
+      $('.modal-container#lobby').classList.add('open')
+      $('.modal-container#lobby span').textContent = data.shortCode;
+
+      window.socket.send(JSON.stringify({
+        event: 'user.join',
+        data: {
+          sessionId: data.sessionId
+        }
+      }))
+    }
+
+    async function joinSession(event) {
+      event.preventDefault();
+      const formData = new FormData(event.target)
+
+      const data = await (await fetch(`http://localhost:3000/games/${formData.get('shortCode')}/join`, {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(new FormData(event.target))),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })).json()
+
+      $('.modal-container#join').classList.remove('open')
+      $('.modal-container#lobby').classList.add('open')
+
+      window.socket.send(JSON.stringify({
+        event: 'user.join',
+        data: {
+          sessionId: data.sessionId,
+        }
+      }))
+    }
+  </script>
+</head>
+<body>
+  <style>
+    .modal-container {
+      display: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      bottom: 0;
+    }
+
+    .modal-container.open {
+      display: initial;
+    }
+
+    .modal-background {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-content {
+      position: absolute;
+      top: 200;
+      right: 15%;
+      left: 15%;
+      margin: 0 auto;
+      padding: 15px 0;
+      background-color: white;
+      border-radius: 5px;
+    }
+
+    .modal-content {
+      display: grid;
+      justify-content: center;
+    }
+
+    .modal-content form {
+      display: grid;
+      justify-content: center;
+    }
+  </style>
+  <h1>Welcome to Pennies!</h1>  
+  <p>Here you can send and receive fake money between friends, like fake Venmo.</p>
+
+  <button onclick="showModal('join')">Join session</button>
+  <button onclick="showModal('host')">Host session</button>
+
+  <div id='join' class="modal-container">
+    <div class="modal-background" onclick="closeModal('join')"></div>
+    <div class="modal-content">
+      <form onsubmit="joinSession(event)">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          name="username"
+        >
+        <br>
+
+        <label for="shortCode">Session Code</label>
+        <input type="text" name="shortCode">
+        <br>
+
+        <button type="submit">Join</button>
+      </form>
+    </div>
+  </div>
+  <div id='host' class="modal-container">
+    <div class="modal-background" onclick="closeModal('host')"></div>
+    <div class="modal-content">
+      <form onsubmit="createSession(event)">
+        <label for="username">Username</label>
+        <input type="text" name="username">
+        <br>
+
+        <label for="nest">How much should each player start with?</label>
+        <input type="number" name="nest" value=1500>
+
+        <button type="submit">Create session</button>
+      </form>
+    </div>
+  </div>
+  <div id='lobby' class="modal-container">
+    <div class="modal-background" onclick="closeModal('lobby')"></div>
+    <div class="modal-content">
+      <span></span>
+      <br>
+
+      <ul id="user-list"></ul>
+      <br>
+
+      <button type="submit">Start</button>
+    </div>
+  </div>
+</body>
+</html>
