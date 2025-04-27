@@ -10,10 +10,19 @@
     const ws = new SharedWorker('./websocket-worker.js');
     ws.port.start();
     ws.port.addEventListener('message', ({ data }) => {
-      console.log(data)
-      if (data.event === 'balance.changed') {
-        $('#my-balance').textContent = `Balance: ${data.payload.balance}`
+      const machine = {
+        'balance.changed': () => {
+          $('#my-balance').textContent = `Balance: $${data.payload.balance}`
+        },
+        'transaction.posted': () => {
+          const transactionLi = document.createElement('li')
+          transactionLi.textContent = data.payload
+          $('#trades').appendChild(transactionLi)
+        },
+        default: () => {}
       }
+
+      machine[data.event || 'default']()
     });
     (async function() {
       const gameState = await(await fetch(`http://localhost:3000/games/${sessionId}/${userId}`)).json();
@@ -41,10 +50,9 @@
       $(`.modal-container#${type}`).classList.remove('open')
     }
 
-    function postMessage(e) {
+    function postPayment(e) {
       e.preventDefault();
       const data = new FormData(e.target);
-      console.log(...data)
 
       ws.port.postMessage({
         event: 'transaction.pay',
@@ -57,6 +65,10 @@
       })
 
       hideModal('pay')
+    }
+
+    function postRequest(e) {
+      e.preventDefault();
     }
 
   </script>
@@ -106,7 +118,7 @@
 
   </style>
   <h2>Trades:</h2>
-  <ul id="traders"></ul>
+  <ul id="trades"></ul>
 
   <h2 id="me">Me:</h2>
   <span id="my-balance">Balance:</span>
@@ -117,7 +129,7 @@
   <div id='pay' class="modal-container">
     <div class="modal-background" onclick="hideModal('pay')"></div>
     <div class="modal-content">
-      <form onsubmit="postMessage(event)">
+      <form onsubmit="postPayment(event)">
         <label for="recipient">Recipient:</label>
         <select name="recipient"></select>
 

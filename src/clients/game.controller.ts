@@ -34,7 +34,7 @@ export class GameController {
 
     await this.users.create(
       {
-        username: 'bank',
+        username: 'the bank',
         sessionId: gameSession.id,
       },
       { transient: { broadcast: false } },
@@ -80,7 +80,7 @@ export class GameController {
     @Param('sessionId') sessionId: string,
     @Param('userId') userId: string,
   ): Promise<GameState> {
-    const users = await this.users.findBy({ sessionId });
+    const users = await this.users.findAllBy({ sessionId });
 
     return {
       others: users.filter((user) => user.id !== userId),

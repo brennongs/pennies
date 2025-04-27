@@ -54,7 +54,11 @@ export class UsersRepository extends Repository<
     });
   }
 
-  public findBy(params?: Prisma.UserWhereInput): Promise<User[]> {
+  public findOneBy(params?: Prisma.UserWhereInput): Promise<User> {
+    return this.prisma.user.findFirstOrThrow({ where: params });
+  }
+
+  public findAllBy(params?: Prisma.UserWhereInput): Promise<User[]> {
     return this.prisma.user.findMany({ where: params });
   }
 

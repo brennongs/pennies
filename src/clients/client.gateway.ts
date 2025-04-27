@@ -6,7 +6,10 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { OnEvent } from '@nestjs/event-emitter';
+import { TransactionType } from 'src/initializers/prisma';
 import { UsersRepository } from 'src/accessors/user';
+import { TransactionsRepository } from 'src/accessors/transaction';
+import { TransactionTransformedEvent } from 'src/initializers/events';
 
 export enum GameEvents {
   Register = 'game.register',
@@ -14,7 +17,10 @@ export enum GameEvents {
 
 @WebSocketGateway()
 export class ClientGateway extends Map<string, Map<string, WebSocket>> {
-  constructor(private readonly users: UsersRepository) {
+  constructor(
+    private readonly users: UsersRepository,
+    private readonly transactions: TransactionsRepository,
+  ) {
     super();
   }
 
@@ -25,6 +31,19 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     }
   }
 
+  @OnEvent(TransactionTransformedEvent.topic)
+  postTransaction(payload: { message: string; sessionId: string }) {
+    const room = this.get(payload.sessionId);
+    room?.forEach((client) => {
+      client.send(
+        JSON.stringify({
+          event: 'transaction.posted',
+          payload: payload.message,
+        }),
+      );
+    });
+  }
+
   @SubscribeMessage('user.join')
   async addUserToRoom(
     @ConnectedSocket() socket: WebSocket,
@@ -32,7 +51,7 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     @MessageBody('userId') userId: string,
   ) {
     const room = this.get(sessionId);
-    const users = await this.users.findBy({ sessionId });
+    const users = await this.users.findAllBy({ sessionId });
 
     if (!room) {
       return;
@@ -44,7 +63,7 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
         JSON.stringify({
           event: 'user.added',
           payload: {
-            users: users.filter((user) => user.username !== 'bank'),
+            users: users.filter((user) => user.username !== 'the bank'),
             me: users.find((user) => user.id === userId),
           },
         }),
@@ -72,7 +91,7 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     @MessageBody('recipientId') recipientId: string,
     @MessageBody('amount') amount: number,
   ) {
-    const [recipient, sender] = await Promise.all([
+    const [recipient, originator] = await Promise.all([
       this.users.updateBy({ id: recipientId }, (user) => {
         console.log(user, amount);
         return {
@@ -85,6 +104,14 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
         balance: Number(user.balance) - Number(amount),
       })),
     ]);
+
+    await this.transactions.create({
+      originatorId: originator.id,
+      recipientId: recipient.id,
+      amount: +amount,
+      sessionId,
+      transactionType: TransactionType.PAYMENT,
+    });
 
     const room = this.get(sessionId);
     const recipientClient = room?.get(recipientId);
@@ -102,7 +129,7 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
       JSON.stringify({
         event: 'balance.changed',
         payload: {
-          balance: sender.balance,
+          balance: originator.balance,
         },
       }),
     );

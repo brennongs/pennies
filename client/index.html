@@ -9,23 +9,24 @@
 
     ws.port.start();
     ws.port.addEventListener('message', ({ data }) => {
-      if (data.event === 'user.added') {
-        const ul = $('.modal-container#lobby ul');
-        
-        while (ul.firstChild) {
-          ul.removeChild(ul.firstChild)
-        }
+      const machine = {
+        'user.added': () => {
+          const ul = $('.modal-container#lobby ul');
+          
+          while (ul.firstChild) {
+            ul.removeChild(ul.firstChild)
+          }
 
-        data.payload.users.forEach(({ username }) => {
-          const user = document.createElement('li')
-          user.textContent = username
-          $('.modal-container#lobby ul').appendChild(user)
-        })
+          data.payload.users.forEach(({ username }) => {
+            const user = document.createElement('li')
+            user.textContent = username
+            $('.modal-container#lobby ul').appendChild(user)
+          })
+        },
+        default: () => {}
       }
 
-      if (data.event === 'session.started') {
-        $('a[href="/play.html"]').click()
-      }
+      machine[data.event || 'default']()
     });
 
     function showModal(type) {

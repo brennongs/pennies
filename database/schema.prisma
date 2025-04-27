@@ -20,6 +20,7 @@ model Session {
   nest Int
 
   users User[]
+  transactions Transaction[]
 }
 
 model User {
@@ -28,4 +29,24 @@ model User {
   session Session @relation(fields: [sessionId], references: [id])
   sessionId String
   balance Int @default(0)
+
+  originatedTransactions Transaction[] @relation("Originator")
+  receivedTransactionns Transaction[] @relation("Recipient")
+}
+
+enum TransactionType {
+  PAYMENT
+  REQUEST
+}
+
+model Transaction {
+  id String @id @default(uuid())
+  originator User @relation("Originator", fields: [originatorId], references: [id])
+  originatorId String
+  recipient User @relation("Recipient", fields: [recipientId], references: [id])
+  recipientId String
+  session Session @relation(fields: [sessionId], references: [id])
+  sessionId String
+  transactionType TransactionType
+  amount Int
 }
