@@ -7,8 +7,13 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { SessionsRepository, Session } from 'src/accessors/session';
+import { SessionsRepository } from 'src/accessors/session';
 import { UsersRepository, User } from 'src/accessors/user';
+
+interface GameState {
+  users: User[];
+  balance: number;
+}
 
 @Controller('games')
 export class GameController {
@@ -16,11 +21,6 @@ export class GameController {
     private readonly sessions: SessionsRepository,
     private readonly users: UsersRepository,
   ) {}
-
-  @Get(':shortCode')
-  getOne(@Param('shortCode') shortCode: string): Promise<Session> {
-    return this.sessions.getBy({ shortCode });
-  }
 
   @Post()
   async create(@Body() data: { nest: string; username: string }): Promise<{
@@ -72,9 +72,15 @@ export class GameController {
     };
   }
 
-  @Get('/:sessionId/users')
-  getAllGameUsers(@Param('sessionId') sessionId: string): Promise<User[]> {
-    console.log(sessionId);
-    return this.users.findBy({ sessionId });
+  @Get('/:sessionId')
+  async getAllGameUsers(
+    @Param('sessionId') sessionId: string,
+  ): Promise<GameState> {
+    const users = await this.users.findBy({ sessionId });
+
+    return {
+      users,
+      balance: 0,
+    };
   }
 }
