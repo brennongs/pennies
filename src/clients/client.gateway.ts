@@ -30,6 +30,7 @@ export class ClientGateway extends Map<string, Set<WebSocket>> {
     @ConnectedSocket() socket: WebSocket,
     @MessageBody('sessionId') sessionId: string,
   ) {
+    console.log('user joined!');
     const room = this.get(sessionId);
     const users = await this.users.findBy({ sessionId });
 
@@ -43,7 +44,7 @@ export class ClientGateway extends Map<string, Set<WebSocket>> {
       client.send(
         JSON.stringify({
           event: 'user.added',
-          data: {
+          payload: {
             usernames: users
               .filter((user) => user.username !== 'bank')
               .map((user) => user.username),

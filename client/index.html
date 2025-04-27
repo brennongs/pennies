@@ -5,24 +5,24 @@
   <title>Document</title>
   <script>
     const $ = document.querySelector.bind(document);
-    window.socket = new WebSocket('ws://localhost:3000');
-    window.socket.addEventListener('message', (event) => {
-      const parsed = JSON.parse(event.data)
+    const ws = new SharedWorker('./websocket-worker.js');
 
-      if (parsed.event === 'user.added') {
+    ws.port.start();
+    ws.port.addEventListener('message', ({ data }) => {
+      if (data.event === 'user.added') {
         const ul = $('.modal-container#lobby ul');
         
         while (ul.firstChild) {
           ul.removeChild(ul.firstChild)
         }
 
-        parsed.data.usernames.forEach((username) => {
+        data.payload.usernames.forEach((username) => {
           const user = document.createElement('li')
           user.textContent = username
           $('.modal-container#lobby ul').appendChild(user)
         })
       }
-    })
+    });
 
     function showModal(type) {
       const modal = $(`#${type}.modal-container`);
@@ -37,7 +37,7 @@
     async function createSession(event) {
       event.preventDefault();
 
-      const formData = new FormData(event.target)
+      const formData = new FormData(event.target);
       const data = await (await fetch('http://localhost:3000/games', {
         method: 'POST',
         body: JSON.stringify(Object.fromEntries(formData)),
@@ -46,21 +46,22 @@
         }
       })).json();
 
-      $('.modal-container#host').classList.remove('open')
-      $('.modal-container#lobby').classList.add('open')
+      $('.modal-container#host').classList.remove('open');
+      $('.modal-container#lobby').classList.add('open');
       $('.modal-container#lobby span').textContent = data.shortCode;
 
-      window.socket.send(JSON.stringify({
+      localStorage.setItem('sessionId', data.sessionId);
+      ws.port.postMessage({
         event: 'user.join',
-        data: {
+        payload: {
           sessionId: data.sessionId
         }
-      }))
+      });
     }
 
     async function joinSession(event) {
       event.preventDefault();
-      const formData = new FormData(event.target)
+      const formData = new FormData(event.target);
 
       const data = await (await fetch(`http://localhost:3000/games/${formData.get('shortCode')}/join`, {
         method: 'POST',
@@ -68,17 +69,18 @@
         headers: {
           'Content-Type': 'application/json'
         }
-      })).json()
+      })).json();
 
-      $('.modal-container#join').classList.remove('open')
-      $('.modal-container#lobby').classList.add('open')
+      $('.modal-container#join').classList.remove('open');
+      $('.modal-container#lobby').classList.add('open');
 
-      window.socket.send(JSON.stringify({
+      localStorage.setItem('sessionId', sessionId);
+      ws.port.postMessage({
         event: 'user.join',
-        data: {
+        payload: {
           sessionId: data.sessionId,
         }
-      }))
+      });
     }
   </script>
 </head>
@@ -174,7 +176,7 @@
       <ul id="user-list"></ul>
       <br>
 
-      <button type="submit">Start</button>
+      <a href="/play.html">Start</a>
     </div>
   </div>
 </body>

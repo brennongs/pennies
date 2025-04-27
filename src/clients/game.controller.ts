@@ -8,7 +8,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { SessionsRepository, Session } from 'src/accessors/session';
-import { UsersRepository } from 'src/accessors/user';
+import { UsersRepository, User } from 'src/accessors/user';
 
 @Controller('games')
 export class GameController {
@@ -70,5 +70,11 @@ export class GameController {
       sessionId: gameSession.id,
       username: body.username,
     };
+  }
+
+  @Get('/:sessionId/users')
+  getAllGameUsers(@Param('sessionId') sessionId: string): Promise<User[]> {
+    console.log(sessionId);
+    return this.users.findBy({ sessionId });
   }
 }

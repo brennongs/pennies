@@ -1,0 +1,26 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coin Purse</title>
+  <script>
+    const $ = document.querySelector.bind(document);
+    const ws = new SharedWorker('./websocket-worker.js');
+    (async function() {
+      const sessionId = localStorage.getItem('sessionId')
+      const users = await(await fetch(`http://localhost:3000/games/${sessionId}/users`)).json()
+
+      users.forEach((user) => {
+        const userLi = document.createElement('li')
+        userLi.textContent = user.username;
+        userLi.id = user.id;
+        $('ul#users').appendChild(userLi)
+      })
+    })();
+  </script>
+</head>
+<body>
+  <h2>Users:</h2>
+  <ul id="users"></ul>
+</body>
+</html>

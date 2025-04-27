@@ -50,3 +50,5 @@ export class UsersRepository extends Repository<
     return this.prisma.user.findMany({ where: params });
   }
 }
+
+export { User };
