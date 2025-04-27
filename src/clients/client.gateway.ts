@@ -13,7 +13,7 @@ export enum GameEvents {
 }
 
 @WebSocketGateway()
-export class ClientGateway extends Map<string, Set<WebSocket>> {
+export class ClientGateway extends Map<string, Map<string, WebSocket>> {
   constructor(private readonly users: UsersRepository) {
     super();
   }
@@ -21,7 +21,7 @@ export class ClientGateway extends Map<string, Set<WebSocket>> {
   @OnEvent('game.created')
   createNewGameSession(payload: { sessionId: string }) {
     if (!this.has(payload.sessionId)) {
-      this.set(payload.sessionId, new Set());
+      this.set(payload.sessionId, new Map());
     }
   }
 
@@ -29,28 +29,84 @@ export class ClientGateway extends Map<string, Set<WebSocket>> {
   async addUserToRoom(
     @ConnectedSocket() socket: WebSocket,
     @MessageBody('sessionId') sessionId: string,
+    @MessageBody('userId') userId: string,
   ) {
-    console.log('user joined!');
     const room = this.get(sessionId);
     const users = await this.users.findBy({ sessionId });
 
     if (!room) {
-      console.log('no room :(');
       return;
     }
 
-    room.add(socket);
+    room.set(userId, socket);
     room.forEach((client) => {
       client.send(
         JSON.stringify({
           event: 'user.added',
           payload: {
-            usernames: users
-              .filter((user) => user.username !== 'bank')
-              .map((user) => user.username),
+            users: users.filter((user) => user.username !== 'bank'),
+            me: users.find((user) => user.id === userId),
           },
         }),
       );
     });
   }
+
+  // @SubscribeMessage('session.start')
+  // startSession(@MessageBody('sessionId') sessionId: string) {
+  //   const room = this.get(sessionId);
+
+  //   room?.forEach((client) => {
+  //     client.send(
+  //       JSON.stringify({
+  //         event: 'session.start',
+  //       }),
+  //     );
+  //   });
+  // }
+
+  @SubscribeMessage('transaction.pay')
+  async payUser(
+    @MessageBody('sessionId') sessionId: string,
+    @MessageBody('senderId') senderId: string,
+    @MessageBody('recipientId') recipientId: string,
+    @MessageBody('amount') amount: number,
+  ) {
+    const [recipient, sender] = await Promise.all([
+      this.users.updateBy({ id: recipientId }, (user) => {
+        console.log(user, amount);
+        return {
+          ...user,
+          balance: Number(user.balance) + Number(amount),
+        };
+      }),
+      this.users.updateBy({ id: senderId }, (user) => ({
+        ...user,
+        balance: Number(user.balance) - Number(amount),
+      })),
+    ]);
+
+    const room = this.get(sessionId);
+    const recipientClient = room?.get(recipientId);
+    const senderClient = room?.get(senderId);
+
+    recipientClient?.send(
+      JSON.stringify({
+        event: 'balance.changed',
+        payload: {
+          balance: recipient.balance,
+        },
+      }),
+    );
+    senderClient?.send(
+      JSON.stringify({
+        event: 'balance.changed',
+        payload: {
+          balance: sender.balance,
+        },
+      }),
+    );
+  }
+
+  // @SubscribeMessage('game.request')
 }

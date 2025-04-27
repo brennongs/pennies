@@ -19,8 +19,16 @@ export class UsersRepository extends Repository<
   ) {
     super((generator) => ({ onCreate, params, transientParams }) => {
       onCreate(async (params) => {
+        const gameSession = await this.prisma.session.findFirst({
+          where: {
+            id: params.sessionId,
+          },
+        });
         const result = await this.prisma.user.create({
-          data: params,
+          data: {
+            ...params,
+            balance: gameSession?.nest,
+          },
         });
 
         if (transientParams.broadcast ?? true) {
@@ -48,6 +56,20 @@ export class UsersRepository extends Repository<
 
   public findBy(params?: Prisma.UserWhereInput): Promise<User[]> {
     return this.prisma.user.findMany({ where: params });
+  }
+
+  public async updateBy(
+    filter: Prisma.UserWhereUniqueInput,
+    update: (current: User) => User,
+    // meta?: Transient,
+  ) {
+    const user = await this.prisma.user.findFirstOrThrow({ where: filter });
+    const changes = update(user);
+
+    return this.prisma.user.update({
+      where: filter,
+      data: changes,
+    });
   }
 }
 

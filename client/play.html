@@ -5,22 +5,143 @@
   <title>Coin Purse</title>
   <script>
     const $ = document.querySelector.bind(document);
+    const sessionId = localStorage.getItem('sessionId');
+    const userId = localStorage.getItem('userId');
     const ws = new SharedWorker('./websocket-worker.js');
+    ws.port.start();
+    ws.port.addEventListener('message', ({ data }) => {
+      console.log(data)
+      if (data.event === 'balance.changed') {
+        $('#my-balance').textContent = `Balance: ${data.payload.balance}`
+      }
+    });
     (async function() {
-      const sessionId = localStorage.getItem('sessionId')
-      const gameState = await(await fetch(`http://localhost:3000/games/${sessionId}`)).json()
+      const gameState = await(await fetch(`http://localhost:3000/games/${sessionId}/${userId}`)).json();
 
-      gameState.users.forEach((user) => {
-        const userLi = document.createElement('li')
-        userLi.textContent = user.username;
-        userLi.id = user.id;
-        $('ul#users').appendChild(userLi)
+      gameState.others.forEach((user) => {
+        const [pay, request] = Array.from({ length: 2 }, () => {
+          const option = document.createElement('option');
+          option.textContent = user.username;
+          option.value = user.id;
+          return option;
+        });
+        $('.modal-container#pay select').appendChild(pay)
+        $('.modal-container#request select').appendChild(request)
       })
+
+      $('#me').textContent = `Me: ${gameState.me.username}`;
+      $('#my-balance').textContent = `Balance: $${gameState.me.balance}`;
     })();
+
+    function showModal(type) {
+      $(`.modal-container#${type}`).classList.add('open')
+    }
+
+    function hideModal(type) {
+      $(`.modal-container#${type}`).classList.remove('open')
+    }
+
+    function postMessage(e) {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      console.log(...data)
+
+      ws.port.postMessage({
+        event: 'transaction.pay',
+        payload: {
+          recipientId: data.get('recipient'),
+          amount: data.get('amount'),
+          sessionId,
+          senderId: userId
+        }
+      })
+
+      hideModal('pay')
+    }
+
   </script>
 </head>
 <body>
-  <h2>Users:</h2>
-  <ul id="users"></ul>
+  <style>
+    .modal-container {
+      display: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      bottom: 0;
+    }
+
+    .modal-container.open {
+      display: initial;
+    }
+
+    .modal-background {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-content {
+      position: absolute;
+      top: 200;
+      right: 15%;
+      left: 15%;
+      margin: 0 auto;
+      padding: 15px 0;
+      background-color: white;
+      border-radius: 5px;
+    }
+
+    .modal-content {
+      display: grid;
+      justify-content: center;
+    }
+
+    .modal-content form {
+      display: grid;
+      justify-content: center;
+    }
+
+  </style>
+  <h2>Trades:</h2>
+  <ul id="traders"></ul>
+
+  <h2 id="me">Me:</h2>
+  <span id="my-balance">Balance:</span>
+
+  <button onclick="showModal('pay')">Pay</button>
+  <button onclick="showModal('request')">Request</button>
+
+  <div id='pay' class="modal-container">
+    <div class="modal-background" onclick="hideModal('pay')"></div>
+    <div class="modal-content">
+      <form onsubmit="postMessage(event)">
+        <label for="recipient">Recipient:</label>
+        <select name="recipient"></select>
+
+        <label for="amount">Amount</label>
+        <input type="number" name="amount">
+
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-container" id="request">
+    <div class="modal-background" onclick="hideModal('request')"></div>
+    <div class="modal-content">
+      <form onsubmit="postMessage(event)">
+        <label for="recipient">Recipient</label>
+        <select name="recipient"></select>
+
+        <label for="amount">Amount</label>
+        <input type="number" name="amount">
+
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
 </body>
 </html>

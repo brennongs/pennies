@@ -16,11 +16,15 @@
           ul.removeChild(ul.firstChild)
         }
 
-        data.payload.usernames.forEach((username) => {
+        data.payload.users.forEach(({ username }) => {
           const user = document.createElement('li')
           user.textContent = username
           $('.modal-container#lobby ul').appendChild(user)
         })
+      }
+
+      if (data.event === 'session.started') {
+        $('a[href="/play.html"]').click()
       }
     });
 
@@ -43,7 +47,7 @@
         body: JSON.stringify(Object.fromEntries(formData)),
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
       })).json();
 
       $('.modal-container#host').classList.remove('open');
@@ -51,10 +55,19 @@
       $('.modal-container#lobby span').textContent = data.shortCode;
 
       localStorage.setItem('sessionId', data.sessionId);
+      localStorage.setItem('userId', data.userId);
+      ws.port.postMessage({
+        event: 'state.save',
+        payload: {
+          sessionId: data.sessionId,
+          userId: data.userId
+        }
+      });
       ws.port.postMessage({
         event: 'user.join',
         payload: {
-          sessionId: data.sessionId
+          sessionId: data.sessionId,
+          userId: data.userId
         }
       });
     }
@@ -74,11 +87,20 @@
       $('.modal-container#join').classList.remove('open');
       $('.modal-container#lobby').classList.add('open');
 
-      localStorage.setItem('sessionId', sessionId);
+      localStorage.setItem('sessionId', data.sessionId);
+      localStorage.setItem('userId', data.userId);
+      ws.port.postMessage({
+        event: 'state.save',
+        payload: {
+          sessionId: data.sessionId,
+          userId: data.userId
+        }
+      });
       ws.port.postMessage({
         event: 'user.join',
         payload: {
           sessionId: data.sessionId,
+          userId: data.userId
         }
       });
     }

@@ -27,4 +27,5 @@ model User {
   username String
   session Session @relation(fields: [sessionId], references: [id])
   sessionId String
+  balance Int @default(0)
 }
