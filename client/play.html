@@ -4,6 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Coin Purse</title>
   <script>
+    const requestedState = {}
     const $ = document.querySelector.bind(document);
     const sessionId = localStorage.getItem('sessionId');
     const userId = localStorage.getItem('userId');
@@ -18,6 +19,12 @@
           const transactionLi = document.createElement('li')
           transactionLi.textContent = data.payload
           $('#trades').appendChild(transactionLi)
+        },
+        'request.made': () => {
+          requestedState.originatorId = data.payload.originatorId;
+          requestedState.amount = data.payload.amount;
+          $('.modal-container#requested').classList.add('open')
+          $('#requested span#request-text').textContent = data.payload.message
         },
         default: () => {}
       }
@@ -57,10 +64,9 @@
       ws.port.postMessage({
         event: 'transaction.pay',
         payload: {
+          originatorId: userId,
           recipientId: data.get('recipient'),
           amount: data.get('amount'),
-          sessionId,
-          senderId: userId
         }
       })
 
@@ -69,8 +75,32 @@
 
     function postRequest(e) {
       e.preventDefault();
+      const data = new FormData(e.target);
+
+      ws.port.postMessage({
+        event: 'transaction.request',
+        payload: {
+          originatorId: userId,
+          recipientId: data.get('recipient'),
+          amount: data.get('amount'),
+        }
+      })
+
+      hideModal('request')
     }
 
+    function fulfillRequest() {
+      ws.port.postMessage({
+        event: 'transaction.pay',
+        payload: {
+          originatorId: userId,
+          recipientId: requestedState.originatorId,
+          amount: requestedState.amount
+        }
+      })
+
+      hideModal('requested')
+    }
   </script>
 </head>
 <body>
@@ -144,7 +174,7 @@
   <div class="modal-container" id="request">
     <div class="modal-background" onclick="hideModal('request')"></div>
     <div class="modal-content">
-      <form onsubmit="postMessage(event)">
+      <form onsubmit="postRequest(event)">
         <label for="recipient">Recipient</label>
         <select name="recipient"></select>
 
@@ -153,6 +183,15 @@
 
         <button type="submit">Send</button>
       </form>
+    </div>
+  </div>
+
+  <div class="modal-container" id="requested">
+    <div class="modal-background" onclick="hideModal('requested')"></div>
+    <div class="modal-content">
+      <span id="request-text"></span>
+
+      <button onclick="fulfillRequest(event)">Pay</button>
     </div>
   </div>
 </body>

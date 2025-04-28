@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'src/initializers/fishery';
+import { SessionCreatedEvent } from 'src/initializers/events';
 import { Session, Prisma, PrismaService } from 'src/initializers/prisma';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class SessionsRepository extends Repository<
 > {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly events: EventEmitter2,
+    private readonly sessionCreated: SessionCreatedEvent,
   ) {
     super((generate) => ({ onCreate }) => {
       onCreate(async (params) => {
@@ -19,10 +19,7 @@ export class SessionsRepository extends Repository<
           data: params,
         });
 
-        this.events.emit('game.created', {
-          sessionId: result.id,
-          shortCode: result.shortCode,
-        });
+        this.sessionCreated.emit(result);
 
         return result;
       });

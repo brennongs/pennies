@@ -6,13 +6,25 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { OnEvent } from '@nestjs/event-emitter';
-import { TransactionType } from 'src/initializers/prisma';
+import { TransactionType, Session } from 'src/initializers/prisma';
 import { UsersRepository } from 'src/accessors/user';
 import { TransactionsRepository } from 'src/accessors/transaction';
-import { TransactionTransformedEvent } from 'src/initializers/events';
+import {
+  TransactionTransformedEvent,
+  SessionCreatedEvent,
+} from 'src/initializers/events';
 
-export enum GameEvents {
-  Register = 'game.register',
+enum IncomingWebsocketEvents {
+  UserJoin = 'user.join',
+  TransactionPay = 'transaction.pay',
+  TransactionRequest = 'transaction.request',
+}
+
+enum OutgoingWebsocketEvents {
+  TransactionPosted = 'transaction.posted',
+  RequestMade = 'request.made',
+  UserAdded = 'user.added',
+  BalanceChanged = 'balance.changed',
 }
 
 @WebSocketGateway()
@@ -24,10 +36,10 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     super();
   }
 
-  @OnEvent('game.created')
-  createNewGameSession(payload: { sessionId: string }) {
-    if (!this.has(payload.sessionId)) {
-      this.set(payload.sessionId, new Map());
+  @OnEvent(SessionCreatedEvent.topic)
+  createNewGameSession(payload: Session) {
+    if (!this.has(payload.id)) {
+      this.set(payload.id, new Map());
     }
   }
 
@@ -37,14 +49,14 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     room?.forEach((client) => {
       client.send(
         JSON.stringify({
-          event: 'transaction.posted',
+          event: OutgoingWebsocketEvents.TransactionPosted,
           payload: payload.message,
         }),
       );
     });
   }
 
-  @SubscribeMessage('user.join')
+  @SubscribeMessage(IncomingWebsocketEvents.UserJoin)
   async addUserToRoom(
     @ConnectedSocket() socket: WebSocket,
     @MessageBody('sessionId') sessionId: string,
@@ -61,7 +73,7 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     room.forEach((client) => {
       client.send(
         JSON.stringify({
-          event: 'user.added',
+          event: OutgoingWebsocketEvents.UserAdded,
           payload: {
             users: users.filter((user) => user.username !== 'the bank'),
             me: users.find((user) => user.id === userId),
@@ -71,35 +83,18 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     });
   }
 
-  // @SubscribeMessage('session.start')
-  // startSession(@MessageBody('sessionId') sessionId: string) {
-  //   const room = this.get(sessionId);
-
-  //   room?.forEach((client) => {
-  //     client.send(
-  //       JSON.stringify({
-  //         event: 'session.start',
-  //       }),
-  //     );
-  //   });
-  // }
-
-  @SubscribeMessage('transaction.pay')
-  async payUser(
-    @MessageBody('sessionId') sessionId: string,
-    @MessageBody('senderId') senderId: string,
+  @SubscribeMessage(IncomingWebsocketEvents.TransactionPay)
+  async makePayment(
+    @MessageBody('originatorId') originatorId: string,
     @MessageBody('recipientId') recipientId: string,
-    @MessageBody('amount') amount: number,
+    @MessageBody('amount') amount: string,
   ) {
     const [recipient, originator] = await Promise.all([
-      this.users.updateBy({ id: recipientId }, (user) => {
-        console.log(user, amount);
-        return {
-          ...user,
-          balance: Number(user.balance) + Number(amount),
-        };
-      }),
-      this.users.updateBy({ id: senderId }, (user) => ({
+      this.users.updateBy({ id: recipientId }, (user) => ({
+        ...user,
+        balance: Number(user.balance) + Number(amount),
+      })),
+      this.users.updateBy({ id: originatorId }, (user) => ({
         ...user,
         balance: Number(user.balance) - Number(amount),
       })),
@@ -109,17 +104,17 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
       originatorId: originator.id,
       recipientId: recipient.id,
       amount: +amount,
-      sessionId,
+      sessionId: recipient.sessionId,
       transactionType: TransactionType.PAYMENT,
     });
 
-    const room = this.get(sessionId);
+    const room = this.get(recipient.sessionId);
     const recipientClient = room?.get(recipientId);
-    const senderClient = room?.get(senderId);
+    const senderClient = room?.get(originatorId);
 
     recipientClient?.send(
       JSON.stringify({
-        event: 'balance.changed',
+        event: OutgoingWebsocketEvents.BalanceChanged,
         payload: {
           balance: recipient.balance,
         },
@@ -127,7 +122,7 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     );
     senderClient?.send(
       JSON.stringify({
-        event: 'balance.changed',
+        event: OutgoingWebsocketEvents.BalanceChanged,
         payload: {
           balance: originator.balance,
         },
@@ -135,5 +130,33 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     );
   }
 
-  // @SubscribeMessage('game.request')
+  @SubscribeMessage(IncomingWebsocketEvents.TransactionRequest)
+  async makeRequest(
+    @MessageBody('originatorId') originatorId: string,
+    @MessageBody('recipientId') recipientId: string,
+    @MessageBody('amount') amount: string,
+  ) {
+    const originator = await this.users.findOneBy({ id: originatorId });
+    const room = this.get(originator.sessionId);
+    const recipientClient = room?.get(recipientId);
+
+    await this.transactions.create({
+      originatorId: originatorId,
+      recipientId: recipientId,
+      amount: +amount,
+      sessionId: originator.sessionId,
+      transactionType: TransactionType.REQUEST,
+    });
+
+    recipientClient?.send(
+      JSON.stringify({
+        event: OutgoingWebsocketEvents.RequestMade,
+        payload: {
+          message: `${originator.username} has requested $${amount} from you!`,
+          originatorId: originatorId,
+          amount,
+        },
+      }),
+    );
+  }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'src/initializers/fishery';
+import { UserCreatedEvent } from 'src/initializers/events';
 import { PrismaService, Prisma, User } from 'src/initializers/prisma';
 
 interface Transient {
@@ -15,7 +15,7 @@ export class UsersRepository extends Repository<
 > {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly events: EventEmitter2,
+    private readonly userCreated: UserCreatedEvent,
   ) {
     super((generator) => ({ onCreate, params, transientParams }) => {
       onCreate(async (params) => {
@@ -32,12 +32,7 @@ export class UsersRepository extends Repository<
         });
 
         if (transientParams.broadcast ?? true) {
-          this.events.emit('user.added', {
-            data: {
-              username: result.username,
-              sessionId: result.sessionId,
-            },
-          });
+          this.userCreated.emit(result);
         }
 
         return result;
