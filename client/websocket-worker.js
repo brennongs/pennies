@@ -1,5 +1,5 @@
 /* eslint-disable */
-const ws = new WebSocket('ws://localhost:3000');
+const ws = new WebSocket('ws://136.36.100.196');
 const ports = [];
 
 const state = {}

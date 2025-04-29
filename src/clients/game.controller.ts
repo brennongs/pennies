@@ -9,10 +9,15 @@ import {
 } from '@nestjs/common';
 import { SessionsRepository } from 'src/accessors/session';
 import { UsersRepository, User } from 'src/accessors/user';
+import {
+  TransactionEngine,
+  TransformedTransaction,
+} from 'src/engines/transaction';
 
 interface GameState {
   others: User[];
   me: User;
+  trades: TransformedTransaction[];
 }
 
 @Controller('games')
@@ -20,6 +25,7 @@ export class GameController {
   constructor(
     private readonly sessions: SessionsRepository,
     private readonly users: UsersRepository,
+    private readonly transactions: TransactionEngine,
   ) {}
 
   @Post()
@@ -81,10 +87,12 @@ export class GameController {
     @Param('userId') userId: string,
   ): Promise<GameState> {
     const users = await this.users.findAllBy({ sessionId });
+    const trades = await this.transactions.getAllBy({ sessionId });
 
     return {
       others: users.filter((user) => user.id !== userId),
       me: users.find((user) => user.id === userId)!,
+      trades,
     };
   }
 }

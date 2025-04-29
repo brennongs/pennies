@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Repository } from 'src/initializers/fishery';
 import {
+  Prisma,
   PrismaService,
   Transaction,
   TransactionType,
@@ -50,6 +51,12 @@ export class TransactionsRepository extends Repository<
         transactionType: TransactionType.PAYMENT,
         amount: 0,
       };
+    });
+  }
+
+  findAllBy(filter: Prisma.TransactionWhereInput) {
+    return this.prisma.transaction.findMany({
+      where: filter,
     });
   }
 }

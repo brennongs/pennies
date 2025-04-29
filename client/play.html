@@ -32,7 +32,7 @@
       machine[data.event || 'default']()
     });
     (async function() {
-      const gameState = await(await fetch(`http://localhost:3000/games/${sessionId}/${userId}`)).json();
+      const gameState = await(await fetch(`http://136.36.100.196/games/${sessionId}/${userId}`)).json();
 
       gameState.others.forEach((user) => {
         const [pay, request] = Array.from({ length: 2 }, () => {
@@ -45,8 +45,13 @@
         $('.modal-container#request select').appendChild(request)
       })
 
-      $('#me').textContent = `Me: ${gameState.me.username}`;
-      $('#my-balance').textContent = `Balance: $${gameState.me.balance}`;
+      gameState.trades.forEach((trade) =>{
+        const transactionLi = document.createElement('li')
+        transactionLi.textContent = trade.message
+        $('#trades').appendChild(transactionLi)
+      })
+
+      $('#my-balance').textContent = `My balance: $${gameState.me.balance}`;
     })();
 
     function showModal(type) {
@@ -150,8 +155,7 @@
   <h2>Trades:</h2>
   <ul id="trades"></ul>
 
-  <h2 id="me">Me:</h2>
-  <span id="my-balance">Balance:</span>
+  <span id="my-balance">My balance:</span>
 
   <button onclick="showModal('pay')">Pay</button>
   <button onclick="showModal('request')">Request</button>

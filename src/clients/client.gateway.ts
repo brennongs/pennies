@@ -27,7 +27,11 @@ enum OutgoingWebsocketEvents {
   BalanceChanged = 'balance.changed',
 }
 
-@WebSocketGateway()
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+  },
+})
 export class ClientGateway extends Map<string, Map<string, WebSocket>> {
   constructor(
     private readonly users: UsersRepository,
@@ -137,9 +141,39 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     @MessageBody('amount') amount: string,
   ) {
     const originator = await this.users.findOneBy({ id: originatorId });
+    const recipient = await this.users.findOneBy({ id: recipientId });
     const room = this.get(originator.sessionId);
-    const recipientClient = room?.get(recipientId);
 
+    if (recipient.username === 'the bank') {
+      const originatorClient = room?.get(originatorId);
+      const { balance } = await this.users.updateBy(
+        { id: originatorId },
+        (user) => ({
+          ...user,
+          balance: Number(user.balance) + Number(amount),
+        }),
+      );
+
+      await this.transactions.create({
+        originatorId: recipientId,
+        recipientId: originatorId,
+        amount: +amount,
+        sessionId: originator.sessionId,
+        transactionType: TransactionType.PAYMENT,
+      });
+
+      originatorClient?.send(
+        JSON.stringify({
+          event: OutgoingWebsocketEvents.BalanceChanged,
+          payload: {
+            balance,
+          },
+        }),
+      );
+      return;
+    }
+
+    const recipientClient = room?.get(recipientId);
     await this.transactions.create({
       originatorId: originatorId,
       recipientId: recipientId,
