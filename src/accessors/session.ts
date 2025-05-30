@@ -35,7 +35,7 @@ export class SessionsRepository extends Repository<
     });
   }
 
-  public getBy(where: Prisma.SessionWhereInput): Promise<Session> {
+  public select(where: Prisma.SessionWhereInput): Promise<Session> {
     return this.prisma.session.findFirstOrThrow({ where });
   }
 

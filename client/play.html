@@ -13,12 +13,12 @@
     ws.port.addEventListener('message', ({ data }) => {
       const machine = {
         'balance.changed': () => {
-          $('#my-balance').textContent = `Balance: $${data.payload.balance}`
+          $('#my-balance>b').textContent = `$${data.payload.balance}`
         },
         'transaction.posted': () => {
           const transactionLi = document.createElement('li')
           transactionLi.textContent = data.payload
-          $('#trades').appendChild(transactionLi)
+          $('#trades > ul').prepend(transactionLi)
         },
         'request.made': () => {
           requestedState.originatorId = data.payload.originatorId;
@@ -31,8 +31,16 @@
 
       machine[data.event || 'default']()
     });
+    setTimeout(() => ws.port.postMessage({
+      event: 'user.join',
+      payload: {
+        userId: localStorage.getItem('userId'),
+        sessionId: localStorage.getItem('sessionId')
+      }
+    }), 100);
     (async function() {
-      const gameState = await(await fetch(`http://136.36.100.196/games/${sessionId}/${userId}`)).json();
+      const gameState = await(await fetch(`http://localhost:3000/games/${sessionId}/${userId}`)).json();
+      console.log(gameState)
 
       gameState.others.forEach((user) => {
         const [pay, request] = Array.from({ length: 2 }, () => {
@@ -48,10 +56,11 @@
       gameState.trades.forEach((trade) =>{
         const transactionLi = document.createElement('li')
         transactionLi.textContent = trade.message
-        $('#trades').appendChild(transactionLi)
+        $('#trades > ul').appendChild(transactionLi)
       })
 
-      $('#my-balance').textContent = `My balance: $${gameState.me.balance}`;
+      $('#my-balance>b').textContent = `$${gameState.me.balance}`;
+      $('#short-code>b').textContent = `${gameState.shortCode}`;
     })();
 
     function showModal(type) {
@@ -106,6 +115,7 @@
 
       hideModal('requested')
     }
+
   </script>
 </head>
 <body>
@@ -150,15 +160,30 @@
       display: grid;
       justify-content: center;
     }
-
+    section#trades > ul {
+      height: 80%;
+      overflow: auto;
+    }
+    section#actions {
+      display: flex;
+      justify-content: space-around;
+      margin: 0 auto;
+    }
   </style>
-  <h2>Trades:</h2>
-  <ul id="trades"></ul>
+  <section>
+    <span id="my-balance">My balance: <b></b></span>
+    <span id="short-code">Code: <b></b></span>
+  </section>
 
-  <span id="my-balance">My balance:</span>
+  <section id="trades">
+    <h2>Trades:</h2>
+    <ul id="trades"></ul>
+  </section>
 
-  <button onclick="showModal('pay')">Pay</button>
-  <button onclick="showModal('request')">Request</button>
+  <section id="actions">
+    <button onclick="showModal('pay')">Pay</button>
+    <button onclick="showModal('request')">Request</button>
+  </section>
 
   <div id='pay' class="modal-container">
     <div class="modal-background" onclick="hideModal('pay')"></div>

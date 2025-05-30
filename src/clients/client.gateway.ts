@@ -66,8 +66,11 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     @MessageBody('sessionId') sessionId: string,
     @MessageBody('userId') userId: string,
   ) {
+    console.log('sessionId ', sessionId, '\nuserId: ', userId);
     const room = this.get(sessionId);
-    const users = await this.users.findAllBy({ sessionId });
+    const users = await this.users.search({ sessionId });
+
+    console.log(room);
 
     if (!room) {
       return;
@@ -94,11 +97,11 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     @MessageBody('amount') amount: string,
   ) {
     const [recipient, originator] = await Promise.all([
-      this.users.updateBy({ id: recipientId }, (user) => ({
+      this.users.update({ id: recipientId }, (user) => ({
         ...user,
         balance: Number(user.balance) + Number(amount),
       })),
-      this.users.updateBy({ id: originatorId }, (user) => ({
+      this.users.update({ id: originatorId }, (user) => ({
         ...user,
         balance: Number(user.balance) - Number(amount),
       })),
@@ -140,13 +143,13 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     @MessageBody('recipientId') recipientId: string,
     @MessageBody('amount') amount: string,
   ) {
-    const originator = await this.users.findOneBy({ id: originatorId });
-    const recipient = await this.users.findOneBy({ id: recipientId });
+    const originator = await this.users.select({ id: originatorId });
+    const recipient = await this.users.select({ id: recipientId });
     const room = this.get(originator.sessionId);
 
     if (recipient.username === 'the bank') {
       const originatorClient = room?.get(originatorId);
-      const { balance } = await this.users.updateBy(
+      const { balance } = await this.users.update(
         { id: originatorId },
         (user) => ({
           ...user,

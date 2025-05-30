@@ -22,7 +22,7 @@ export class TransactionEngine {
   ) {}
 
   async getAllBy(filter: { sessionId: string }) {
-    const transactions = await this.transactions.findAllBy({
+    const transactions = await this.transactions.find({
       sessionId: filter.sessionId,
     });
 
@@ -41,8 +41,8 @@ export class TransactionEngine {
   }
 
   private async prepareForNotification(payload: Transaction) {
-    const originator = await this.users.findOneBy({ id: payload.originatorId });
-    const recipient = await this.users.findOneBy({ id: payload.recipientId });
+    const originator = await this.users.select({ id: payload.originatorId });
+    const recipient = await this.users.select({ id: payload.recipientId });
     const machine = {
       [TransactionType.PAYMENT]: `${originator.username} paid ${recipient.username} $${payload.amount}.`,
       [TransactionType.REQUEST]: `${originator.username} requested $${payload.amount} from ${recipient.username}`,

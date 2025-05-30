@@ -41,7 +41,7 @@ export class TransactionsRepository extends Repository<
         !params.amount ||
         !params.sessionId
       ) {
-        throw new Error('please provide all the stuff');
+        throw new Error('please provide all necessary transaction parameters');
       }
 
       return {
@@ -54,7 +54,7 @@ export class TransactionsRepository extends Repository<
     });
   }
 
-  findAllBy(filter: Prisma.TransactionWhereInput) {
+  find(filter: Prisma.TransactionWhereInput) {
     return this.prisma.transaction.findMany({
       where: filter,
     });

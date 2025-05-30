@@ -18,6 +18,7 @@ interface GameState {
   others: User[];
   me: User;
   trades: TransformedTransaction[];
+  shortCode: string;
 }
 
 @Controller('games')
@@ -63,7 +64,7 @@ export class GameController {
     @Param('shortCode') shortCode: string,
     @Body() body: { username: string },
   ) {
-    const gameSession = await this.sessions.getBy({ shortCode });
+    const gameSession = await this.sessions.select({ shortCode });
 
     if (!gameSession) {
       throw new HttpException('game not found', HttpStatus.NOT_FOUND);
@@ -81,15 +82,30 @@ export class GameController {
     };
   }
 
+  @Get('/:shortCode/users')
+  async rejoin(@Param('shortCode') shortCode: string) {
+    const { id: sessionId } = await this.sessions.select({ shortCode });
+    const users = await this.users.search({ sessionId });
+
+    return {
+      users: users
+        .filter((user) => user.username !== 'the bank')
+        .map(({ id, username }) => ({ id, username })),
+      sessionId,
+    };
+  }
+
   @Get('/:sessionId/:userId')
   async getGameState(
     @Param('sessionId') sessionId: string,
     @Param('userId') userId: string,
   ): Promise<GameState> {
-    const users = await this.users.findAllBy({ sessionId });
+    const session = await this.sessions.select({ id: sessionId });
+    const users = await this.users.search({ sessionId });
     const trades = await this.transactions.getAllBy({ sessionId });
 
     return {
+      shortCode: session.shortCode,
       others: users.filter((user) => user.id !== userId),
       me: users.find((user) => user.id === userId)!,
       trades,

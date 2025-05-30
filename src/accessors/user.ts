@@ -49,15 +49,15 @@ export class UsersRepository extends Repository<
     });
   }
 
-  public findOneBy(params?: Prisma.UserWhereInput): Promise<User> {
+  public select(params?: Prisma.UserWhereInput): Promise<User> {
     return this.prisma.user.findFirstOrThrow({ where: params });
   }
 
-  public findAllBy(params?: Prisma.UserWhereInput): Promise<User[]> {
+  public search(params?: Prisma.UserWhereInput): Promise<User[]> {
     return this.prisma.user.findMany({ where: params });
   }
 
-  public async updateBy(
+  public async update(
     filter: Prisma.UserWhereUniqueInput,
     update: (current: User) => User,
     // meta?: Transient,
