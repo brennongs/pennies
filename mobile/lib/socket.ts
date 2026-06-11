@@ -1,9 +1,4 @@
-interface User {
-  id: string;
-  username: string;
-  sessionId: string;
-  balance: number;
-}
+import { User } from './types';
 
 // Mirrors IncomingWebsocketEvents in src/clients/client.gateway.ts —
 // messages the RN client sends ("publish").

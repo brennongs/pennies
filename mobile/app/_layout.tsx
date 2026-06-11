@@ -5,6 +5,8 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+import '@/lib/config';
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
