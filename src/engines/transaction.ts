@@ -41,14 +41,16 @@ export class TransactionEngine {
   }
 
   private async prepareForNotification(payload: Transaction) {
-    const originator = await this.users.select({ id: payload.originatorId });
-    const recipient = await this.users.select({ id: payload.recipientId });
-    const machine = {
+    const [originator, recipient] = await Promise.all([
+      this.users.select({ id: payload.originatorId }),
+      this.users.select({ id: payload.recipientId }),
+    ]);
+    const messageMachine = {
       [TransactionType.PAYMENT]: `${originator.username} paid ${recipient.username} $${payload.amount}.`,
       [TransactionType.REQUEST]: `${originator.username} requested $${payload.amount} from ${recipient.username}`,
     };
     const transformed = {
-      message: machine[payload.transactionType],
+      message: messageMachine[payload.transactionType],
       sessionId: payload.sessionId,
     };
 
