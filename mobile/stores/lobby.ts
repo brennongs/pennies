@@ -21,9 +21,8 @@ function createLobbyStore(
     async init() {
       const { shortCode } = globalStore.getState();
       socket.instance.subscribe('user.added', ({ users }) => {
-        set((state) => ({
-          users: Array.from(new Set([...state.users, ...users]))
-        }))
+        console.log(users)
+        set({ users })
       })
 
       const response = await fetch.get<{

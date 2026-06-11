@@ -15,6 +15,8 @@ export default function Lobby({ useStore = useLobbyStore }: Props) {
       init()
       mounted.current = true
     }
+
+    return () => { mounted.current = false }
   }, [mounted, init]) 
 
   return (
