@@ -10,6 +10,7 @@ void (async function () {
   const config = app.get(ConfigService);
   const port = Number(config.get('PORT') ?? 3031);
 
+  app.enableCors();
   app.useStaticAssets(resolve(__dirname, '..', 'client'));
   app.useWebSocketAdapter(new WsAdapter(app));
 

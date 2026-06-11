@@ -10,9 +10,9 @@ export class Fetch {
     return response.json() as Promise<Response>
   }
 
-  public static async post<Body, Response>(path: string, body: Body): Promise<Response> {
+  public static async post<Response>(path: string, body: unknown): Promise<Response> {
     this.validate()
-    const response = await fetch(`${Fetch.url}/${path}`, {
+    const response = await fetch(`${Fetch.url}${path}`, {
       method: 'POST',
       body: JSON.stringify(body),
       headers: {

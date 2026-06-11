@@ -1,4 +1,5 @@
 import { User } from './types';
+import { sleep } from './utilities';
 
 // Mirrors IncomingWebsocketEvents in src/clients/client.gateway.ts —
 // messages the RN client sends ("publish").
@@ -52,7 +53,7 @@ export class Socket {
     topic: Topic,
     payload: ClientEvents[Topic]
   ): void {
-    this.socket.send(JSON.stringify({ event: topic, data: payload }))
+    sleep(300).then(() => this.socket.send(JSON.stringify({ event: topic, data: payload })))
   }
 
   public subscribe<Topic extends keyof ServerEvents>(

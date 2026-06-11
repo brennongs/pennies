@@ -11,7 +11,7 @@ import { TransactionsRepository } from './accessors/transaction';
 import { TransactionEngine } from './engines/transaction';
 
 @Module({
-  imports: [ConfigModule, EventsModule, PrismaModule],
+  imports: [ConfigModule.forRoot(), EventsModule, PrismaModule],
   controllers: [GameController],
   providers: [
     ClientGateway,
