@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { Socket } from "@/lib/socket";
 import { Fetch } from "@/lib/fetch";
+import { Socket } from "@/lib/socket";
 import { useGlobalStore } from "./session";
 
 interface Contract {
@@ -10,8 +10,8 @@ interface Contract {
   setArguments(args: { username?: string; nest?: number }): void;
 }
 function createHostStore(
-  socket = Socket,
   fetch = Fetch,
+  socket = Socket,
   globalStore = useGlobalStore
 ) {
   return create<Contract>((set, get) => ({
@@ -34,14 +34,14 @@ function createHostStore(
         nest
       });
 
+      socket.instance.publish('user.join', {
+        sessionId,
+        userId
+      });
       globalStore.setState({
         sessionId,
         userId,
         shortCode
-      });
-      socket.instance.publish('user.join', {
-        sessionId,
-        userId
       });
     },
 

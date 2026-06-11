@@ -1,6 +1,12 @@
 import { Text, Button } from "react-native"
 import { useRouter } from "expo-router"
-export default function PayModal() {
+import { useGameStore } from "@/stores/game"
+
+interface Props {
+  useStore: typeof useGameStore
+}
+
+export default function PayModal({ useStore = useGameStore }: Props) {
   const router = useRouter()
   return (
     <>

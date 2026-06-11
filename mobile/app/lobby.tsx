@@ -27,7 +27,7 @@ export default function Lobby({ useStore = useLobbyStore }: Props) {
         data={users}
         renderItem={(item) => <Text>{item.item.username}</Text>}
       />
-      <Link href='/game'>Game</Link>
+      <Link href='/game'>Start Game</Link>
     </>
   )
 }
