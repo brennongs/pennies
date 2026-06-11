@@ -3,7 +3,7 @@ export class Fetch {
 
   public static async get<Response>(path: string): Promise<Response> {
     this.validate()
-    const response = await fetch(`${Fetch.url}/${path}`, {
+    const response = await fetch(`${Fetch.url}${path}`, {
       method: 'GET'
     })
 
