@@ -66,11 +66,8 @@ export class ClientGateway extends Map<string, Map<string, WebSocket>> {
     @MessageBody('sessionId') sessionId: string,
     @MessageBody('userId') userId: string,
   ) {
-    console.log('sessionId ', sessionId, '\nuserId: ', userId);
     const room = this.get(sessionId);
     const users = await this.users.search({ sessionId });
-
-    console.log(room);
 
     if (!room) {
       return;

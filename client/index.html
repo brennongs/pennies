@@ -9,7 +9,6 @@
 
     ws.port.start();
     ws.port.addEventListener('message', ({ data }) => {
-      console.log(data)
       const machine = {
         'user.added': () => {
           const ul = $('.modal-container#lobby ul');
