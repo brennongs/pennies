@@ -1,49 +1,44 @@
 import { Text, TextInput, Button } from "react-native"
 import { useRouter } from "expo-router"
-import { useGameStore } from "@/stores/game"
-import { useRequestStore } from "@/stores/request"
+import { useGameStore } from "@/stores/game.store"
+import { useRequestCommand } from "@/stores/request.command"
 import { Dropdown } from "@/components/dropdown"
 
 interface Props {
   useGame: typeof useGameStore;
-  useRequest: typeof useRequestStore
+  useRequest: typeof useRequestCommand
 }
 export default function RequestModal({
   useGame = useGameStore,
-  useRequest = useRequestStore
+  useRequest = useRequestCommand
 }: Props) {
-  const { others } = useGame()
-  console.log(others)
-  const {
-    request,
-    amount,
-    recipient,
-    setRequestState 
-  } = useRequest()
+  const { balance, others } = useGame()
+  const { recipient, ...requestCommand} = useRequest()
   const router = useRouter()
+
   return (
     <>
-      <Text>Recipient</Text>
       <Dropdown
+        placeholder="Select a recipient"
         value={recipient && { value: recipient.id, label: recipient.username }}
         options={others.map(u => ({
           value: u.id,
           label: u.username
         }))}
-        onChange={(v) => setRequestState({
-          recipient: others.find(u => u.id = v.value)
+        onChange={(v) => requestCommand.setState({
+          recipient: others.find(u => u.id === v.value)
         })}
       />
-      <Text>Amount</Text>
       <TextInput
-        value={String(amount)}
+        placeholder="Enter an amount"
         keyboardType="numeric"
-        onChangeText={(v) => setRequestState({
+        onChangeText={(v) => requestCommand.setState({
           amount: Number(v)
         })}
       />
+      <Text>Balance: {balance}</Text>
       <Button title='Request' onPress={() => {
-        request()
+        requestCommand.execute()
         router.back()
       }}/>
     </>

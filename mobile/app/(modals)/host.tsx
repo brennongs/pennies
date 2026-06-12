@@ -1,12 +1,12 @@
 import { Text, Button, TextInput } from "react-native"
 import { useRouter } from "expo-router"
-import { useHostStore } from "@/stores/host"
+import { useHostGameCommand } from "@/stores/host-game.command"
 
 interface Props {
-  useStore?: typeof useHostStore 
+  useHostGame?: typeof useHostGameCommand 
 }
-export default function HostModal({ useStore = useHostStore }: Props) {
-  const { host, setArguments, nest, username } = useStore();
+export default function HostModal({ useHostGame = useHostGameCommand }: Props) {
+  const { username, nest, ...hostGameCommand} = useHostGame();
   const router = useRouter()
   return (
     <>
@@ -14,15 +14,15 @@ export default function HostModal({ useStore = useHostStore }: Props) {
 
       <TextInput
         value={username}
-        onChangeText={(v) => setArguments({ username: v })}
+        onChangeText={(v) => hostGameCommand.setState({ username: v })}
       />
       <TextInput
         value={String(nest)}
-        onChangeText={(v) => setArguments({ nest: +v })}
+        onChangeText={(v) => hostGameCommand.setState({ nest: +v })}
         keyboardType="numeric"
       />
       <Button title='host' onPress={async () => {
-        await host()
+        await hostGameCommand.execute()
         router.replace('/lobby')
       }}/>
     </>

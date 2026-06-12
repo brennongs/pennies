@@ -1,25 +1,26 @@
 import { create } from "zustand";
 import { Fetch } from "@/lib/fetch";
 import { Socket } from "@/lib/socket";
-import { useGlobalStore } from "./session";
+import { useGlobalStore } from "./session.store";
+import { Command } from "./types";
 
-interface Contract {
+interface State {
   shortCode: string;
   username: string;
-  join(): Promise<void>;
-  setState(state: { shortCode?: string; username?: string; }): void
 }
-function createJoinStore(
+const defaultState: State = {
+  shortCode: '',
+  username: '',
+}
+function createJoinGameCommand(
   fetch = Fetch,
   socket = Socket,
   globalStore = useGlobalStore
 ) {
-  return create<Contract>((set, get) => ({
-    shortCode: '',
-    username: '',
-
-    async join() {
-      const { shortCode, username } = get()
+  return create<Command<State>>((set, get) => ({
+    ...defaultState,
+    async execute() {
+      const { shortCode, username, clearState } = get()
       const {
         sessionId,
         userId
@@ -42,13 +43,18 @@ function createJoinStore(
         sessionId,
         userId,
         shortCode
-      })
+      });
+      clearState();
     },
 
     setState(state) {
       set(state)
-    }
+    },
+
+    clearState() {
+      set(defaultState)
+    },
   }))
 }
 
-export const useJoinStore = createJoinStore();
+export const useJoinGameCommand = createJoinGameCommand();

@@ -1,18 +1,24 @@
 import { create } from 'zustand'
 import { Socket } from '@/lib/socket'
 import { Fetch } from '@/lib/fetch'
-import { useGlobalStore } from './session'
+import { useGlobalStore } from './session.store'
 import { User, Transaction } from '@/lib/types'
 
-
-interface Contract {
+interface RequestTransaction extends Omit<Transaction, 'sessionId'> {
+  amount: string;
+  originatorId: string;
+}
+interface State {
   shortCode: string;
   trades: Transaction[];
   others: User[];
   me: User | null;
   balance: number;
-  init(): void;
-  request(recipientId: string, amount: number): void;
+  activeRequest?: RequestTransaction
+}
+interface Contract extends State {
+  init(): Promise<void>;
+  setState(state: Partial<State>): void;
 }
 function createGameStore(
   socket = Socket,
@@ -25,10 +31,18 @@ function createGameStore(
     others: [],
     me: null,
     balance: NaN,
+    activeRequest: undefined,
+
+    setState(state) { set(state) },
 
     async init() {
       socket.instance.subscribe('balance.changed', ({ balance }) => set({ balance }))
-      socket.instance.subscribe('request.made', () => {})
+      socket.instance.subscribe('request.made', (payload) => {
+        const { activeRequest } = get()
+        if (!activeRequest) {
+          set({ activeRequest: payload })
+        }
+      })
       socket.instance.subscribe('user.added', () => {})
       socket.instance.subscribe('transaction.posted', (message) => {
         const { sessionId } = globalStore.getState()
@@ -50,7 +64,6 @@ function createGameStore(
         trades: Transaction[];
         shortCode: string;
       }>(`/games/${sessionId}/${userId}`)
-      console.log(others)
 
       set({
         others,
@@ -60,15 +73,6 @@ function createGameStore(
         shortCode
       })
     },
-
-    request(recipientId, amount) {
-      const { userId } = globalStore.getState();
-      socket.instance.publish('transaction.request', {
-        originatorId: userId,
-        recipientId,
-        amount: String(amount)
-      })
-    }
   }))
 }
 

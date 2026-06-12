@@ -1,25 +1,26 @@
 import { create } from "zustand";
 import { Fetch } from "@/lib/fetch";
 import { Socket } from "@/lib/socket";
-import { useGlobalStore } from "./session";
+import { useGlobalStore } from "./session.store";
+import { Command } from "./types";
 
-interface Contract {
+interface State {
   username: string;
   nest: number;
-  host(): Promise<void>;
-  setArguments(args: { username?: string; nest?: number }): void;
 }
-function createHostStore(
+const defaultState: State = {
+  username: '',
+  nest: 1500,
+}
+function createHostGameCommand(
   fetch = Fetch,
   socket = Socket,
   globalStore = useGlobalStore
 ) {
-  return create<Contract>((set, get) => ({
-    username: '',
-    nest: 1500,
-
-    async host() {
-      const { username, nest } = get()
+  return create<Command<State>>((set, get) => ({
+    ...defaultState,
+    async execute() {
+      const { username, nest, clearState } = get()
 
       const {
         sessionId,
@@ -43,13 +44,13 @@ function createHostStore(
         userId,
         shortCode
       });
+      clearState();
     },
 
-    setArguments(args) {
-      return set({...args})
-    }
+    setState(state) { set(state) },
+    clearState() { set(defaultState) },
   }))
 
 }
 
-export const useHostStore = createHostStore()
+export const useHostGameCommand = createHostGameCommand()

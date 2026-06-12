@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Fetch } from "@/lib/fetch";
 import { Socket } from "@/lib/socket";
-import { useGlobalStore } from "./session";
+import { useGlobalStore } from "./session.store";
 import { User } from "@/lib/types";
 
 interface Contract {

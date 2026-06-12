@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import { Text, FlatList } from "react-native"
 import { Link } from "expo-router"
-import { useLobbyStore } from "@/stores/lobby"
+import { useLobbyStore } from "@/stores/lobby.store"
 
 interface Props {
   useStore: typeof useLobbyStore

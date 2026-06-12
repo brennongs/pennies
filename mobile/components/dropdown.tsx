@@ -8,25 +8,29 @@ interface Option {
 interface Props {
   options: Option[]
   value?: Option;
+  placeholder?: string;
   onChange: Dispatch<Option>
 }
-export function Dropdown({ options, onChange, value }: Props) {
+export function Dropdown({
+  options,
+  onChange,
+  value,
+  placeholder
+}: Props) {
   const [open, setOpen] = useState(false)
-  console.log(options)
 
   return (
     <View>
       <TouchableOpacity onPress={() => setOpen(!open)}>
-        <Text>{(
-          value && value.label || 'Select an option'
-        )}</Text>
+        <Text>
+          {value && value.label || placeholder || 'Select an option'}
+        </Text>
       </TouchableOpacity>
 
       {open && (
         <View>
           <FlatList
             data={options}
-            keyExtractor={(item) => item.value}
             renderItem={(item) => (
               <TouchableOpacity
                 onPress={() => {

@@ -1,23 +1,38 @@
 import { Text, Button, TextInput } from "react-native"
 import { useRouter } from "expo-router"
-import { useJoinStore } from "@/stores/join";
+import { useJoinGameCommand } from "@/stores/join-game.command";
 
 interface Props {
-  useStore: typeof useJoinStore
+  useJoinGame: typeof useJoinGameCommand
 }
-export default function JoinModal({ useStore = useJoinStore }: Props) {
-  const { shortCode, username, setState, join } = useStore();
+export default function JoinModal({ useJoinGame = useJoinGameCommand }: Props) {
+  const { shortCode, username, ...joinGameCommand} = useJoinGame();
   const router = useRouter();
 
   return (
     <>
       <Text>Join</Text>
-      <TextInput value={shortCode} onChangeText={(v) => setState({ shortCode: v })} placeholder="short code"/>
-      <TextInput value={username} onChangeText={(v) => setState({ username: v })} placeholder="username"/>
-      <Button title='join' onPress={async () => {
-        await join()
-        router.replace('/lobby')
-      }}/>
+      <TextInput
+        value={shortCode}
+        onChangeText={(v) => joinGameCommand.setState({
+          shortCode: v
+        })}
+        placeholder="short code"
+      />
+      <TextInput
+        value={username}
+        onChangeText={(v) => joinGameCommand.setState({
+          username: v
+        })}
+        placeholder="username"
+      />
+      <Button
+        title='join'
+        onPress={async () => {
+          await joinGameCommand.execute()
+          router.replace('/lobby')
+        }}
+      />
     </>
   )
 }

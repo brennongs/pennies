@@ -1,31 +1,31 @@
 import { create } from "zustand";
 import { Socket } from "@/lib/socket";
-import { useGlobalStore } from "./session";
+import { useGlobalStore } from "./session.store";
 import { User } from '@/lib/types';
+import { Command } from "./types";
 
 interface State {
   amount: number;
   recipient?: User;
 }
-interface Contract extends State {
-  request(): void;
-  setRequestState(state: Partial<State>): void
+const defaultState: State = {
+  amount: NaN,
+  recipient: undefined
 }
-function createRequestStore(
+function createRequestCommand(
   socket = Socket,
   globalStore = useGlobalStore
 ) {
-  return create<Contract>((set, get) => ({
-    amount: NaN,
-    recipient: undefined,
+  return create<Command<State>>((set, get) => ({
+    ...defaultState,
 
-    setRequestState(state) {
+    setState(state) {
       set(state)
     },
 
-    request() {
+    async execute() {
       const { userId } = globalStore.getState()
-      const { recipient, amount } = get()
+      const { recipient, amount, clearState } = get()
 
       if (!recipient) {
         throw new Error('please select a recipient')
@@ -36,8 +36,13 @@ function createRequestStore(
         originatorId: userId,
         amount: String(amount)
       })
-    }
+      clearState()
+    },
+
+    clearState() {
+      set(defaultState)
+    },
   }))
 }
 
-export const useRequestStore = createRequestStore()
+export const useRequestCommand = createRequestCommand()

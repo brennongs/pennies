@@ -1,18 +1,13 @@
 import { View, Text } from "react-native"
-import { Link } from 'expo-router'
-// import { useHomeStore } from "@/stores/home"
+import { ButtonLink } from "@/components/button-link"
 
-// interface Props {
-//   useStore: typeof useHomeStore
-// }
 export default function Index() {
-  // const { join, host, rejoin } = useStore()
   return (
     <View>
       <Text>Home</Text>
-      <Link href='/(modals)/host'>Host Game</Link>
-      <Link href='/(modals)/join'>Join Game</Link>
-      <Link href='/(modals)/rejoin'>Rejoin Game</Link>
+      <ButtonLink href='/(modals)/host' title='Host Game' />
+      <ButtonLink href='/(modals)/join' title='Join Game' />
+      <ButtonLink href='/(modals)/rejoin' title='Rejoin Game' />
     </View>
   )
 }
